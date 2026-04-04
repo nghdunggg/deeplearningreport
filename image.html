@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <title>Image Classification | DL Assignment 1</title>
+    <style>
+        .insight-box { background: #f0f7ff; border-left: 4px solid #004e92; padding: 15px; margin-top: 20px; border-radius: 4px; }
+        .colab-img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: block; margin: 20px auto; }
+        .img-caption { text-align: center; font-style: italic; color: #666; font-size: 0.9em; margin-bottom: 20px; }
+    </style>
 </head>
 <body>
     <header>
         <h1>Image Classification Report</h1>
-        <p>CIFAR-10 Dataset & Convolutional Neural Networks</p>
+        <p>Skin Cancer Classification using HAM10000 Dataset</p>
     </header>
 
     <nav>
@@ -22,60 +27,312 @@
     <div class="container">
         <section class="card">
             <h2>1. Exploratory Data Analysis (EDA)</h2>
-            <p>The <strong>CIFAR-10</strong> dataset consists of 60,000 32x32 color images in 10 classes, with 6,000 images per class. There are 50,000 training images and 10,000 test images.</p>
             
-            <div style="text-align: center; margin: 20px 0;">
-                <img src="assets/cifar_samples.png" alt="CIFAR-10 Samples" style="max-width: 100%; border-radius: 5px;">
-                <p><em>Example classes: plane, car, bird, cat, deer, dog, frog, horse, ship, truck.</em></p>
+            <h3>1.1 Dataset Overview</h3>
+            <p>The <strong>HAM10000</strong> ("Human Against Machine with 10000 training images") dataset is a large collection of multi-source dermatoscopic images of common pigmented skin lesions.</p>
+            <ul>
+                <li><strong>Total Samples:</strong> 10,015 images.</li>
+                <li><strong>Original Resolution:</strong> 600x450 pixels (RGB).</li>
+                <li><strong>Data Split:</strong> Stratified split of 80% Training (8,012 images) and 20% Testing (2,003 images) to maintain class proportions.</li>
+                <li><strong>Target Classes (7 distinct types):</strong>
+                    <ul style="margin-top: 5px;">
+                        <li><code>akiec</code>: Actinic keratoses (Pre-cancerous)</li>
+                        <li><code>bcc</code>: Basal cell carcinoma (Cancerous)</li>
+                        <li><code>bkl</code>: Benign keratosis-like lesions (Benign)</li>
+                        <li><code>df</code>: Dermatofibroma (Benign)</li>
+                        <li><code>nv</code>: Melanocytic nevi (Benign)</li>
+                        <li><code>mel</code>: Melanoma (Cancerous - Highly malignant)</li>
+                        <li><code>vasc</code>: Vascular lesions (Benign)</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h3>1.2 Visual Samples</h3>
+            <p>Below are representative images from the dataset, illustrating the visual complexity and high similarity between different lesion types (e.g., distinguishing a benign nevus from an early-stage melanoma is visually challenging).</p>
+            
+            <img src="assets/ham10000_samples.png" alt="HAM10000 Image Samples" class="colab-img" style="max-width: 100%;">
+            <p class="img-caption">Figure 1.1: Random samples of skin lesions from the HAM10000 dataset.</p>
+
+            <h3>1.3 Class Distribution & Imbalance</h3>
+            <p>An initial analysis of the target labels reveals the natural distribution of clinical skin cancer cases. The dataset is heavily skewed towards benign lesions.</p>
+            
+            <img src="assets/ham10000_distribution.png" alt="Class Distribution Bar Chart" class="colab-img">
+            <p class="img-caption">Figure 1.2: Bar chart showing the number of samples per class in the HAM10000 dataset.</p>
+
+            <div class="insight-box">
+                <strong style="color: #004e92; font-size: 1.1em;">📌 Key Observations & Challenges:</strong>
+                <ul style="margin: 8px 0 0 0; color: #333;">
+                    <li><strong>Severe Imbalance:</strong> The majority class (Melanocytic nevi - <code>nv</code>) contains over 6,700 samples, while the minority class (Dermatofibroma - <code>df</code>) has only 115 samples. The imbalance ratio is roughly <strong>58:1</strong>.</li>
+                    <li><strong>Risk of Bias:</strong> Deep learning models are prone to bias towards the majority class. If untreated, the model might achieve high overall accuracy simply by predicting "Benign nevi" for every image, while dangerously misclassifying malignant melanomas.</li>
+                </ul>
             </div>
         </section>
 
         <section class="card">
-            <h2>2. Model Architecture</h2>
-            <p>For this assignment, we implemented a Convolutional Neural Network (CNN) designed to extract spatial features from the 32x32 RGB images. The pipeline includes:</p>
+            <h2 style="color: #004e92; border-bottom: 2px solid #00a8cc; padding-bottom: 5px;">2. Proposed Preprocessing Pipeline</h2>
+            <p>To prepare the high-resolution medical images for deep learning models, we implemented a customized pipeline via PyTorch's <code>DataLoader</code>:</p>
+            <style>
+                .pipeline-container { display: flex; align-items: center; justify-content: space-between; background: #f0f7ff; padding: 30px 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #004e92; }
+                .pipeline-step { text-align: center; flex: 1; }
+                .step-box { background: #004e92; color: white; padding: 15px 20px; border-radius: 8px; font-weight: bold; font-size: 1.1em; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid #004e92; transition: all 0.3s; min-width: 120px; }
+                .step-box:hover { background: white; color: #004e92; transform: translateY(-2px); }
+                .step-desc { font-size: 0.9em; color: #333; margin-top: 10px; font-weight: 500; }
+                .pipeline-arrow { color: #00a8cc; font-size: 2em; font-weight: bold; padding: 0 10px; }
+                @media (max-width: 768px) { .pipeline-container { flex-direction: column; gap: 15px; } .pipeline-arrow { transform: rotate(90deg); } }
+            </style>
+
+            <div class="pipeline-container">
+                <div class="pipeline-step">
+                    <div class="step-box">Raw Image</div>
+                    <div class="step-desc">600x450 RGB</div>
+                </div>
+                <div class="pipeline-arrow">&#10140;</div>
+                <div class="pipeline-step">
+                    <div class="step-box">Resize</div>
+                    <div class="step-desc">224x224 pixels</div>
+                </div>
+                <div class="pipeline-arrow">&#10140;</div>
+                <div class="pipeline-step">
+                    <div class="step-box">Augment</div>
+                    <div class="step-desc">Horizontal / Vertical Flip</div>
+                </div>
+                <div class="pipeline-arrow">&#10140;</div>
+                <div class="pipeline-step">
+                    <div class="step-box">Normalize</div>
+                    <div class="step-desc">ImageNet Standards</div>
+                </div>
+                <div class="pipeline-arrow">&#10140;</div>
+                <div class="pipeline-step">
+                    <div class="step-box">Tensor</div>
+                    <div class="step-desc">Model Input</div>
+                </div>
+            </div>
             <ul>
-                <li><strong>Data Augmentation:</strong> Normalization and tensor conversion.</li>
-                <li><strong>Layers:</strong> Sequential Convolutional layers followed by Max-Pooling and Fully Connected (Linear) layers.</li>
-                <li><strong>Optimizer:</strong> SGD or Adam was utilized to minimize the Cross-Entropy loss.</li>
+                <li style="margin-bottom: 10px;"><strong>Resolution Standardization:</strong> All images were resized from 600x450 to <strong>224x224</strong> to match the input specifications of pre-trained ResNet and ViT architectures.</li>
+                <li style="margin-bottom: 10px;"><strong>Medical Data Augmentation:</strong> Unlike standard objects (e.g., cars or animals), skin lesions have no fixed top/bottom orientation. Therefore, we applied both <code>RandomHorizontalFlip</code> and <code>RandomVerticalFlip</code> to artificially multiply the training set while preserving biological validity.</li>
+                <li><strong>Normalization:</strong> Applied ImageNet standard mean <code>[0.485, 0.456, 0.406]</code> and standard deviation <code>[0.229, 0.224, 0.225]</code> to stabilize gradient descent.</li>
+            </ul>
+            
+            <img src="assets/augmentation_sample.png" alt="Data Augmentation Samples" class="colab-img" style="max-width: 80%; margin-top: 20px;">
+            <p class="img-caption">Figure 2.1: Demonstration of spatial augmentation techniques applied to a lesion image.</p>
+        </section>
+
+        <section class="card">
+            <h2 style="color: #004e92; border-bottom: 2px solid #00a8cc; padding-bottom: 5px;">3. Model Architecture & Training Strategies</h2>
+            <p>We conducted a comparative study between a Convolutional Neural Network (<strong>ResNet-18</strong>) and a Vision Transformer (<strong>ViT-B_16</strong>). For both architectures, the final classification head was modified to output 7 classes corresponding to the HAM10000 dataset.</p>
+            
+            <h3>Two Fine-Tuning Strategies Tested:</h3>
+            <ol>
+                <li style="margin-bottom: 8px;"><strong>Freeze Backbone (FB):</strong> Only the newly initialized final classification head is trained. The pre-trained feature extractor remains completely frozen. This strategy is computationally cheap but may limit domain adaptation, especially for specialized medical imagery.</li>
+                <li><strong>Full Fine-Tuning (FFT):</strong> All layers of the network are unfrozen and updated concurrently using a very small learning rate (e.g., 1e-4). This approach allows the model to deeply learn medical-specific features but requires significantly more computational power and time.</li>
+            </ol>
+            
+            <p>All experiments were executed for 5 epochs utilizing a <strong>Tesla T4 GPU</strong>. Below are the comparative results:</p>
+
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+                <thead>
+                    <tr style="background-color: #004e92; color: white;">
+                        <th style="padding: 12px; border: 1px solid #ddd; border-top-left-radius: 8px;">Model</th>
+                        <th style="padding: 12px; border: 1px solid #ddd;">Strategy</th>
+                        <th style="padding: 12px; border: 1px solid #ddd;">Time / Epoch</th>
+                        <th style="padding: 12px; border: 1px solid #ddd;">Total Time</th>
+                        <th style="padding: 12px; border: 1px solid #ddd; border-top-right-radius: 8px;">Test Accuracy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background-color: #fff;">
+                        <td style="padding: 10px; border: 1px solid #ddd;">ResNet-18</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">Freeze Backbone</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">~1.3 min</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">6.50 min</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: 500;">76.64%</td>
+                    </tr>
+                    <tr style="background-color: #f9f9f9;">
+                        <td style="padding: 10px; border: 1px solid #ddd;">ResNet-18</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">Full Fine-Tuning</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">~1.4 min</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">7.10 min</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: 500;">77.78%</td>
+                    </tr>
+                    <tr style="background-color: #fff;">
+                        <td style="padding: 10px; border: 1px solid #ddd;">ViT-B_16</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">Freeze Backbone</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">~2.0 min</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">10.34 min</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: 500;">79.83%</td>
+                    </tr>
+                    <tr style="background-color: #e6f1ff; border: 2px solid #00a8cc;">
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; color: #004e92;">ViT-B_16</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; color: #004e92;">Full Fine-Tuning</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; color: #004e92;">~5.4 min</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; color: #004e92;">26.98 min</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; color: #28a745; font-size: 1.1em;">84.62%</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="text-align: center; font-size: 0.9em; color: #666; margin-top: 10px; font-style: italic;">Table 3.1: Performance comparison across models and fine-tuning strategies.</p>
+            <h3 style="color: #00a8cc; margin-top: 25px;">Key Takeaways:</h3>
+            <ul style="color: #333; line-height: 1.6;">
+                <li style="margin-bottom: 8px;"><strong>CNN vs. Transformer:</strong> The Vision Transformer (ViT-B_16) outperformed the Convolutional model (ResNet-18) in peak accuracy by nearly 7% (84.62% vs 77.78%). However, this comes at a steep computational cost, with ViT taking almost 4 times longer to train per epoch. This highlights the power of self-attention mechanisms in capturing global context in medical images, albeit being resource-heavy.</li>
+                <li><strong>The Necessity of Full Fine-Tuning:</strong> For both architectures, FFT yielded better results than Freeze Backbone. Because pre-trained models are initialized on natural images (dogs, cars, etc. from ImageNet), their frozen feature extractors are suboptimal for the unique textures and colors of dermatoscopic lesions. Unfreezing the layers is critical for domain adaptation in medical AI.</li>
             </ul>
         </section>
 
         <section class="card">
-            <h2>3. Training Performance</h2>
-            <p>The model was trained on a <strong>Tesla T4 GPU</strong> using PyTorch. Below is a summary of the performance:</p>
+            <h2 style="color: #004e92; border-bottom: 2px solid #00a8cc; padding-bottom: 5px;">4. Model Evaluation</h2>
             
-            <table>
+            <h3 style="color: #00a8cc;">4.1 Training Convergence (All Strategies)</h3>
+            <p>To comprehensively evaluate the learning process, the training loss and testing accuracy over 5 epochs for all four configurations are visualized below:</p>
+
+            <style>
+                .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
+                .chart-item { text-align: center; }
+                .chart-item img { max-width: 100%; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+                .chart-title { font-weight: bold; color: #004e92; margin-top: 10px; font-size: 0.95em; }
+                
+                .eval-table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+                .eval-table th { border-bottom: 2px solid #eee; padding: 15px 10px; font-weight: bold; color: #2c3e50; text-align: center; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
+                .eval-table td { padding: 15px 10px; border-bottom: 1px solid #f5f5f5; text-align: center; color: #444; font-size: 0.95em; }
+                .eval-table tr:hover { background-color: #fcfcfc; }
+                .col-model { font-weight: bold; text-align: left !important; color: #333; }
+                .best-val-box { background-color: #4CAF50; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; display: inline-block; }
+                .good-val-text { color: #28a745; font-weight: bold; }
+                
+                @media (max-width: 768px) { .chart-grid { grid-template-columns: 1fr; } }
+            </style>
+
+            <div class="chart-grid">
+                <div class="chart-item">
+                    <img src="assets/resnet_fb_hist.png" alt="ResNet-18 FB History">
+                    <div class="chart-title">ResNet-18 (Freeze Backbone)</div>
+                </div>
+                <div class="chart-item">
+                    <img src="assets/resnet_fft_hist.png" alt="ResNet-18 FFT History">
+                    <div class="chart-title">ResNet-18 (Full Fine-Tuning)</div>
+                </div>
+                <div class="chart-item">
+                    <img src="assets/vit_fb_hist.png" alt="ViT-B_16 FB History">
+                    <div class="chart-title">ViT-B_16 (Freeze Backbone)</div>
+                </div>
+                <div class="chart-item">
+                    <img src="assets/vit_fft_hist.png" alt="ViT-B_16 FFT History">
+                    <div class="chart-title">ViT-B_16 (Full Fine-Tuning)</div>
+                </div>
+            </div>
+
+            <div style="background-color: #f8f9fa; border-left: 4px solid #17a2b8; padding: 15px; margin-top: 25px; border-radius: 4px;">
+                <strong style="color: #17a2b8;">📉 Convergence Analysis:</strong> 
+                <ul style="margin-top: 8px; margin-bottom: 0; color: #444; line-height: 1.6;">
+                    <li><strong>Capacity to Learn:</strong> Full Fine-Tuning configurations consistently achieve much lower training losses compared to their Freeze Backbone counterparts. This proves that adjusting the entire network's weights is essential for recognizing the unique textures of medical imaging.</li>
+                    <li><strong>Learning Curves:</strong> ResNet-18 converges quickly but plateaus early. In contrast, ViT-B_16 shows a steeper and more continuous learning curve, fully utilizing its self-attention mechanism by Epoch 3 to surpass the CNN architecture in accuracy.</li>
+                </ul>
+            </div>
+
+            <h3 style="color: #00a8cc; margin-top: 40px;">4.2 Evaluation Metrics Comparison</h3>
+            <p>Due to the severe class imbalance in the HAM10000 dataset, relying solely on Accuracy is insufficient. We report the weighted Precision, Recall, and F1-Score to ensure a fair assessment across all models.</p>
+
+            <table class="eval-table">
                 <thead>
                     <tr>
-                        <th>Metric</th>
-                        <th>Value</th>
+                        <th style="text-align: left;">MODEL</th>
+                        <th>PRECISION &uarr;</th>
+                        <th>RECALL &uarr;</th>
+                        <th>F1-SCORE &uarr;</th>
+                        <th>ACCURACY &uarr;</th>
+                        <th>TOP-5 ACCURACY &uarr;</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Training Samples</td>
-                        <td>50,000</td>
+                        <td class="col-model">ResNet-18 (Freeze Backbone)</td>
+                        <td class="good-val-text">75.20</td>
+                        <td class="good-val-text">76.64</td>
+                        <td class="good-val-text">75.44</td>
+                        <td class="good-val-text">76.64</td>
+                        <td class="good-val-text">99.30</td>
                     </tr>
                     <tr>
-                        <td>Test Samples</td>
-                        <td>10,000</td>
+                        <td class="col-model">ResNet-18 (Full Fine-Tuning)</td>
+                        <td class="good-val-text">77.79</td>
+                        <td class="good-val-text">77.78</td>
+                        <td class="good-val-text">75.96</td>
+                        <td class="good-val-text">77.78</td>
+                        <td class="good-val-text">99.45</td>
                     </tr>
                     <tr>
-                        <td>Batch Size</td>
-                        <td>16 (EDA) / Configurable for Training</td>
+                        <td class="col-model">ViT-B_16 (Freeze Backbone)</td>
+                        <td class="good-val-text">78.73</td>
+                        <td class="good-val-text">79.83</td>
+                        <td class="good-val-text">79.08</td>
+                        <td class="good-val-text">79.83</td>
+                        <td><span class="best-val-box">99.75</span></td>
+                    </tr>
+                    <tr>
+                        <td class="col-model">ViT-B_16 (Full Fine-Tuning)</td>
+                        <td><span class="best-val-box">84.60</span></td>
+                        <td><span class="best-val-box">84.62</span></td>
+                        <td><span class="best-val-box">83.39</span></td>
+                        <td><span class="best-val-box">84.62</span></td>
+                        <td class="good-val-text">99.70</td>
                     </tr>
                 </tbody>
             </table>
+            <p style="text-align: center; font-size: 0.85em; color: #777; margin-top: 15px; font-style: italic;">Table 4.1: Comprehensive evaluation metrics. Best results are highlighted in green.</p>
+
+            <div style="background-color: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                <strong style="color: #28a745;">📊 Metrics Analysis:</strong> 
+                <ul style="margin-top: 8px; margin-bottom: 0; color: #444; line-height: 1.6;">
+                    <li><strong>The Accuracy vs. F1-Score Gap:</strong> Across all models, the F1-Score is noticeably lower than the overall Accuracy (e.g., 83.39% vs 84.62% for ViT-B_16 FFT). This reflects the dataset's severe imbalance; the models perform exceptionally well on the majority class (Nevi) but struggle slightly with minority classes, which drags down the weighted F1-Score.</li>
+                    <li><strong>Clinical Potential (Top-5 Accuracy):</strong> Remarkably, all models achieve nearly <strong>100% Top-5 Accuracy</strong>. In a clinical setting, this means the true disease is almost guaranteed to be within the model's top 5 predictions. Therefore, the AI can serve as a highly effective diagnostic support tool, helping dermatologists safely narrow down possibilities and significantly reducing the risk of missed diagnoses.</li>                </ul>
+            </div>
         </section>
 
         <section class="card">
-            <h2>4. Conclusion & Observations</h2>
-            <p>By leveraging deep convolutional layers, the model learns to identify complex patterns such as textures and shapes. Key challenges observed included distinguishing between visually similar classes like "cat" and "dog."</p>
+            <h2 style="color: #004e92; border-bottom: 2px solid #00a8cc; padding-bottom: 5px;">5. Error Analysis & Clinical Limitations (Extension)</h2>
+            <p>To fulfill the extension requirement and deeply understand the model's behavior beyond aggregate metrics, we performed an error analysis on the best model (<strong>ViT-B_16 Full Fine-Tuning</strong>). We focus on categorizing misclassifications and analyzing the clinical risks associated with the dataset's severe imbalance.</p>
+
+            <h3 style="color: #00a8cc;">5.1 Confusion Matrix Analysis</h3>
+            <p>The confusion matrix below illustrates the exact distribution of the model's predictions across all 7 classes on the test set.</p>
+            
+            <img src="assets/vit_confusion_matrix.png" alt="Confusion Matrix for ViT-B_16" class="colab-img" style="max-width: 85%; border: 1px solid #eee;">
+            <p class="img-caption">Figure 5.1: Confusion Matrix of ViT-B_16 (Full Fine-Tuning) on the HAM10000 Test Set.</p>
+
+            <div class="insight-box" style="background: #fff5f5; border-left: 4px solid #dc3545; padding: 20px; border-radius: 8px; margin-top: 25px; box-shadow: 0 4px 6px rgba(220,53,69,0.1);">
+                <strong style="color: #dc3545; font-size: 1.2em; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.3em;">🚨</span> Critical Medical Findings: The Imbalance Trap
+                </strong>
+                <p style="margin: 12px 0 0 0; color: #444; line-height: 1.6;">
+                    While the overall accuracy is high (~84.6%), the confusion matrix exposes a dangerous bias towards the majority class (<strong>Melanocytic nevi - <code>nv</code></strong>). Because <code>nv</code> makes up 67% of the training data, the model heavily favors predicting <code>nv</code> when uncertain.<br><br>
+                    <strong>The False Negative Danger:</strong> The most critical error occurs when the model misclassifies a highly malignant <strong>Melanoma (<code>mel</code>)</strong> as a benign nevus (<code>nv</code>). In a real-world clinical setting, a False Negative for Melanoma could lead to a delayed cancer diagnosis, which is potentially fatal. 
+                </p>
+            </div>
+
+            <h3 style="color: #00a8cc; margin-top: 30px;">5.2 Categorizing Hard Examples</h3>
+            <p>Based on the confusion patterns, the model's errors generally fall into two categories:</p>
+            <ul style="line-height: 1.7; color: #333;">
+                <li>
+                    <strong>Inter-class Visual Similarity:</strong> Early-stage melanomas and atypical nevi share near-identical visual features (asymmetric shapes, irregular borders, and varied coloration). Without temporal data (how the lesion changes over time) or 3D depth, even experienced dermatologists struggle to distinguish them solely from 2D dermoscopic images.
+                </li>
+                <li>
+                    <strong>Data Starvation:</strong> Minority classes like <strong>Dermatofibroma (<code>df</code>)</strong> and <strong>Vascular lesions (<code>vasc</code>)</strong> have very few training samples. Consequently, the model fails to learn robust feature representations for these classes, often confusing them with the dominant <code>nv</code> class.
+                </li>
+            </ul>
+
+            <h3 style="color: #00a8cc; margin-top: 30px;">5.3 Illustrating Misclassified Cases</h3>
+            <p>To visually demonstrate the "Inter-class Visual Similarity" issue mentioned above, below are actual samples from the test set where the model confidently made critical False Negative errors (predicting benign Nevi instead of malignant Melanoma).</p>
+            
+            <img src="assets/misclassified_samples.png" alt="Misclassified Samples" class="colab-img" style="max-width: 100%; border: 1px solid #ddd; border-radius: 8px;">
+            <p class="img-caption">Figure 5.2: Examples of False Negatives. True Label: Melanoma (Malignant) | Predicted: Nevi (Benign).</p>
+
+            <p style="margin-top: 15px; background: #f4f7f6; padding: 15px; border-left: 4px solid #6c757d; border-radius: 4px; color: #444; font-style: italic;">
+                <strong>Brief Explanation:</strong> To the naked eye (and to the model), these malignant melanomas possess the smooth borders and uniform coloring typically associated with harmless nevi. This visual overlap forces the model to rely on its training prior (guessing 'nv' because it's statistically most likely), leading to the misclassification.
+            </p>
         </section>
+
     </div>
 
     <footer style="text-align: center; padding: 20px; color: #777;">
-        © 2026 Nguyễn Hoàng Dung - HCMUT
+        © 2026 Nguyễn Hoàng Dung - 2252109 - HCMUT
     </footer>
 </body>
 </html>
