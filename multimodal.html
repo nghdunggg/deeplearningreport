@@ -31,7 +31,6 @@
 
     <!-- ───── SECTION 1: OVERVIEW ───── -->
     <section class="card">
-        <div class="section-label">Section 1</div>
         <h2>Project Overview</h2>
 
         <p>This report presents a systematic evaluation of <strong>OpenAI CLIP (ViT-B/16)</strong> for food image classification across three learning paradigms: zero-shot inference, 5-shot linear probing, and 10-shot linear probing. We leverage CLIP's joint vision-language embedding space to classify images from a 10-class subset of the UPMC Food-101 dataset without requiring large labeled training sets.</p>
@@ -58,7 +57,6 @@
 
     <!-- ───── SECTION 2: DATA PIPELINE ───── -->
     <section class="card">
-        <div class="section-label">Section 2</div>
         <h2>Dataset &amp; Preprocessing Pipeline</h2>
 
         <h3>2.1 Dataset Overview</h3>
@@ -104,7 +102,6 @@
 
     <!-- ───── SECTION 3: ZERO-SHOT ───── -->
     <section class="card">
-        <div class="section-label">Section 3</div>
         <h2>Zero-Shot Classification</h2>
 
         <h3>3.1 Method</h3>
@@ -137,7 +134,6 @@
 
     <!-- ───── SECTION 4: FEW-SHOT ───── -->
     <section class="card">
-        <div class="section-label">Section 4</div>
         <h2>Few-Shot Classification (Linear Probe)</h2>
 
         <h3>4.1 Architecture</h3>
@@ -170,7 +166,6 @@
 
     <!-- ───── SECTION 5: RESULTS ───── -->
     <section class="card">
-        <div class="section-label">Section 5</div>
         <h2>Results &amp; Performance Comparison</h2>
 
         <h3>5.1 Accuracy Comparison</h3>
@@ -195,7 +190,6 @@
                         <th>Precision</th>
                         <th>F1 Score</th>
                         <th>Training Samples</th>
-                        <th>Backbone Trained?</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -205,7 +199,6 @@
                         <td class="good-cell">0.898</td>
                         <td class="good-cell">0.877</td>
                         <td>0</td>
-                        <td>No</td>
                     </tr>
                     <tr>
                         <td><strong>5-Shot (Linear Probe)</strong></td>
@@ -213,7 +206,6 @@
                         <td class="bad-cell">0.882</td>
                         <td class="bad-cell">0.878</td>
                         <td>50</td>
-                        <td>No (linear head only)</td>
                     </tr>
                     <tr style="background: #f2faf5;">
                         <td><strong>10-Shot (Linear Probe)</strong></td>
@@ -221,7 +213,6 @@
                         <td class="best-cell">0.942</td>
                         <td class="best-cell">0.941</td>
                         <td>100</td>
-                        <td>No (linear head only)</td>
                     </tr>
                 </tbody>
             </table>
@@ -236,7 +227,6 @@
 
     <!-- ───── SECTION 6: CONFUSION MATRICES ───── -->
     <section class="card">
-        <div class="section-label">Section 6</div>
         <h2>Error Analysis — Confusion Matrices</h2>
 
         <p>Confusion matrices reveal which categories are most commonly confused. Since all three methods share the same 10-class label space, we can directly compare error patterns across paradigms.</p>
@@ -262,7 +252,6 @@
 
     <!-- ───── SECTION 7: CALIBRATION ───── -->
     <section class="card">
-        <div class="section-label">Section 7</div>
         <h2>Confidence Calibration Analysis</h2>
 
         <p>Calibration measures whether a model's predicted confidence scores are trustworthy — i.e., when it says "90% confident", is it right ~90% of the time? This is critical in real-world deployments where confidence thresholds gate downstream decisions.</p>
@@ -314,7 +303,6 @@
 
     <!-- ───── SECTION 8: CONCLUSIONS ───── -->
     <section class="card">
-        <div class="section-label">Section 8</div>
         <h2>Conclusions &amp; Takeaways</h2>
 
         <h3>8.1 Performance Summary</h3>
@@ -335,14 +323,6 @@
                 <li><strong>Multimodal fusion helps:</strong> combining image and text embeddings (recipe title) adds marginal but consistent gains over image-only classification.</li>
             </ul>
         </div>
-
-        <h3>8.3 Future Directions</h3>
-        <ul>
-            <li>Experiment with <strong>prompt ensembling</strong> (averaging multiple prompt templates per class) to further improve zero-shot performance.</li>
-            <li>Apply <strong>temperature scaling</strong> to calibrate linear probe confidence scores before deployment.</li>
-            <li>Explore <strong>higher shot counts</strong> (k = 20, 50) to map the full few-shot learning curve.</li>
-            <li>Compare against a fully fine-tuned CLIP or a ViT trained from scratch to quantify the data efficiency advantage.</li>
-        </ul>
     </section>
 
 </div>
