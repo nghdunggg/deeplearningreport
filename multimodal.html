@@ -3,81 +3,353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLIP Food Classification | DL Assignment</title>
     <link rel="stylesheet" href="style.css">
-    <title>Multimodal Classification | Food-101</title>
 </head>
 <body>
-    <header>
-        <h1>Multimodal Classification Report</h1>
-        <p>Image-Text Fusion using OpenAI CLIP</p>
-    </header>
 
-    <nav>
-        <a href="index.html">Home</a>
-        <a href="text.html">Text Analysis</a>
-        <a href="image.html">Image Classification</a>
-        <a href="multimodal.html">Multimodal</a>
-    </nav>
+<header>
+    <div class="header-tag">Deep Learning — Multimodal Classification</div>
+    <h1>CLIP-Based Food Image Classification</h1>
+    <p>Zero-Shot and Few-Shot Approaches using OpenAI CLIP (ViT-B/16) on UPMC Food-101 (10-class subset)</p>
+    <div class="header-meta">
+        <span class="meta-chip">Model: CLIP ViT-B/16</span>
+        <span class="meta-chip">Dataset: UPMC Food-101</span>
+        <span class="meta-chip">Classes: 10</span>
+        <span class="meta-chip">Paradigms: Zero-Shot · 5-Shot · 10-Shot</span>
+    </div>
+</header>
 
-    <div class="container">
-        <section class="card">
-            <h2>Methodology</h2>
-            <p>Our approach utilizes the <strong>ViT-B/32</strong> CLIP backbone to extract features from both images and their corresponding text descriptions. We tested three distinct scenarios:</p>
-            <ol>
-                <li><strong>Zero-Shot:</strong> Direct prediction without any training.</li>
-                <li><strong>Few-Shot (k=5):</strong> Training with only 5 samples per class (505 total samples).</li>
-                <li><strong>Full Training:</strong> Fine-tuning on the entire dataset (67,988 samples).</li>
-            </ol>
-        </section>
+<nav>
+    <a href="index.html">Home</a>
+    <a href="text.html">Text Analysis</a>
+    <a href="image.html">Image Classification</a>
+    <a href="multimodal.html" class="active">Multimodal</a>
+</nav>
 
-        <section class="card">
-            <h2>Performance Comparison</h2>
-            <p>The following table summarizes the test accuracy achieved across the three scenarios:</p>
+<div class="container">
+
+    <!-- ───── SECTION 1: OVERVIEW ───── -->
+    <section class="card">
+        <div class="section-label">Section 1</div>
+        <h2>Project Overview</h2>
+
+        <p>This report presents a systematic evaluation of <strong>OpenAI CLIP (ViT-B/16)</strong> for food image classification across three learning paradigms: zero-shot inference, 5-shot linear probing, and 10-shot linear probing. We leverage CLIP's joint vision-language embedding space to classify images from a 10-class subset of the UPMC Food-101 dataset without requiring large labeled training sets.</p>
+
+        <h3>Motivation &amp; Approach</h3>
+        <p>Traditional supervised classifiers demand thousands of labeled examples per class. CLIP's contrastive pretraining on 400M image-text pairs enables meaningful classification with little to no task-specific data — a critical advantage in real-world settings where annotation is expensive. We test how far this zero-shot capability reaches, and how quickly it improves with just a handful of labeled examples.</p>
+
+        <h3>Food Categories</h3>
+        <p>The experiment covers 10 visually distinct (yet sometimes confusable) food categories:</p>
+        <ul>
+            <li><code>donuts</code>, <code>french_fries</code>, <code>hamburger</code>, <code>hot_dog</code>, <code>ice_cream</code></li>
+            <li><code>pho</code>, <code>pizza</code>, <code>steak</code>, <code>sushi</code>, <code>tacos</code></li>
+        </ul>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Key Design Choices</div>
+            <ul style="margin: 0 0 0 16px; color: #2e2c28;">
+                <li><strong>Prompt Engineering:</strong> Class embeddings use the template <code>"a photo of {class}"</code> to align with CLIP's pretraining distribution.</li>
+                <li><strong>Multimodal Fusion:</strong> Both image and text (title/caption) embeddings are averaged before similarity scoring, exploiting both modalities.</li>
+                <li><strong>Linear Probe:</strong> A single linear layer is trained on top of frozen CLIP features — no fine-tuning of the backbone.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ───── SECTION 2: DATA PIPELINE ───── -->
+    <section class="card">
+        <div class="section-label">Section 2</div>
+        <h2>Dataset &amp; Preprocessing Pipeline</h2>
+
+        <h3>2.1 Dataset Overview</h3>
+        <p>The <strong>UPMC Food-101</strong> dataset is a large-scale multimodal food collection pairing images with recipe titles. We use a curated 10-class subset balanced across categories, split into train, validation, and test sets.</p>
+        <ul>
+            <li><strong>Test set:</strong> ~2,320 images (≈232 per class)</li>
+            <li><strong>Train/Val split:</strong> 90% / 10% stratified split</li>
+            <li><strong>Support set (few-shot):</strong> k = 5 or k = 10 samples per class sampled from training data</li>
+            <li><strong>Image preprocessing:</strong> Handled by CLIP's built-in <code>preprocess</code> pipeline (resize → center crop → normalize with ImageNet stats)</li>
+        </ul>
+
+        <h3>2.2 Preprocessing Pipeline</h3>
+        <div class="pipeline">
+            <div class="pipe-step">
+                <div class="pipe-box">Raw Image</div>
+                <div class="pipe-desc">Variable resolution RGB</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="pipe-box">Resize</div>
+                <div class="pipe-desc">224×224 pixels</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="pipe-box">Center Crop</div>
+                <div class="pipe-desc">CLIP standard</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="pipe-box">Normalize</div>
+                <div class="pipe-desc">ImageNet μ/σ</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="pipe-box">CLIP Encode</div>
+                <div class="pipe-desc">512-dim embedding</div>
+            </div>
+        </div>
+
+        <h3>2.3 Multimodal Input Construction</h3>
+        <p>Each sample provides both an image and an associated text caption (recipe title from the dataset). For zero-shot classification, the image embedding is averaged with the caption embedding before cosine similarity is computed. For the linear probe, image and text embeddings are <strong>concatenated</strong> (resulting in a 1024-dim vector) and passed through the linear head.</p>
+    </section>
+
+    <!-- ───── SECTION 3: ZERO-SHOT ───── -->
+    <section class="card">
+        <div class="section-label">Section 3</div>
+        <h2>Zero-Shot Classification</h2>
+
+        <h3>3.1 Method</h3>
+        <p>The <code>ZeroShotCLIP</code> classifier compares each query's fused embedding against pre-computed class prototype embeddings — one per category, generated from the prompt <em>"a photo of &lt;class&gt;"</em>. The class with the highest cosine similarity is selected as the prediction. No gradient updates are performed; the model is purely inference-based.</p>
+
+        <h3>3.2 Zero-Shot Performance</h3>
+        <div class="metrics-grid">
+            <div class="metric-card best">
+                <div class="metric-label">Accuracy</div>
+                <div class="metric-value">89.6%</div>
+                <div class="metric-sub">Zero-Shot CLIP</div>
+            </div>
+            <div class="metric-card best">
+                <div class="metric-label">Weighted Precision</div>
+                <div class="metric-value">89.8%</div>
+                <div class="metric-sub">Macro avg across 10 classes</div>
+            </div>
+            <div class="metric-card best">
+                <div class="metric-label">F1 Score</div>
+                <div class="metric-value">87.7%</div>
+                <div class="metric-sub">Weighted F1</div>
+            </div>
+        </div>
+
+        <div class="callout callout-success">
+            <div class="callout-title">Remarkable Zero-Shot Capability</div>
+            <p style="margin:0; color: #2e2c28;">Without a single labeled training example for the downstream task, CLIP ViT-B/16 achieves <strong>89.6% accuracy</strong> — a testament to the power of large-scale contrastive pretraining. The model's joint vision-language embedding effectively generalises to unseen classification tasks purely through natural language prompts.</p>
+        </div>
+    </section>
+
+    <!-- ───── SECTION 4: FEW-SHOT ───── -->
+    <section class="card">
+        <div class="section-label">Section 4</div>
+        <h2>Few-Shot Classification (Linear Probe)</h2>
+
+        <h3>4.1 Architecture</h3>
+        <p>The <code>LinearProbe</code> model appends a single trainable linear layer on top of frozen CLIP embeddings. The backbone is completely frozen (no gradient flow through CLIP), making training fast and data-efficient. The input dimension is <code>512 × 2 = 1024</code> (image + text concatenation), and the output is a 10-class logit vector trained with cross-entropy loss.</p>
+
+        <h3>4.2 Training Configuration</h3>
+        <ul>
+            <li><strong>Optimizer:</strong> Adam, learning rate <code>1e-4</code></li>
+            <li><strong>Epochs:</strong> up to 50, with early stopping (patience = 8)</li>
+            <li><strong>Support set:</strong> k × 10 = 50 (5-shot) or 100 (10-shot) total training samples</li>
+            <li><strong>Validation:</strong> 10% stratified split of the training set</li>
+        </ul>
+
+        <h3>4.3 Training Curves</h3>
+        <p>Both 5-shot and 10-shot probes converge smoothly. The 10-shot probe trains faster and reaches a higher plateau — consistent with the larger support set giving better gradient signal per epoch.</p>
+        <div class="fig-wrap">
+            <img src="assets/training_curves.png" alt="HAM10000 Image Samples" class="colab-img" style="max-width: 100%;">
+            <p class="fig-caption">Figure 4.1 — Cross-entropy loss (left) and validation accuracy (right) across 50 training epochs for 5-shot and 10-shot linear probes.</p>
+        </div>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Training Observations</div>
+            <ul style="margin: 0 0 0 16px; color: #2e2c28;">
+                <li>The <strong>10-shot probe</strong> converges more steeply — reaching ~85% validation accuracy by epoch 10 vs. epoch 25 for the 5-shot probe.</li>
+                <li>Both probes show no sign of overfitting, even without regularisation — the linear head has limited capacity relative to the CLIP embedding space.</li>
+                <li>The 5-shot probe's loss curve oscillates more, reflecting the noisier gradient estimates from fewer training samples.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ───── SECTION 5: RESULTS ───── -->
+    <section class="card">
+        <div class="section-label">Section 5</div>
+        <h2>Results &amp; Performance Comparison</h2>
+
+        <h3>5.1 Accuracy Comparison</h3>
+        <div class="fig-wrap">
+            <img src="assets/accuracy_bar.png" alt="HAM10000 Image Samples" class="colab-img" style="max-width: 100%;">
+            <p class="fig-caption">Figure 5.1 — Test accuracy for Zero-Shot, 5-Shot (Linear Probe), and 10-Shot (Linear Probe) methods.</p>
+        </div>
+
+        <h3>5.2 Comprehensive Metrics</h3>
+        <div class="fig-wrap">
+            <img src="assets/metrics_grouped_bar.png" alt="HAM10000 Image Samples" class="colab-img" style="max-width: 100%;">
+            <p class="fig-caption">Figure 5.2 — Accuracy, Precision, and F1 Score for all three classification methods using CLIP ViT-B/16.</p>
+        </div>
+
+        <h3>5.3 Summary Table</h3>
+        <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th>Scenario</th>
-                        <th>Sample Size</th>
-                        <th>Epochs</th>
+                        <th>Method</th>
                         <th>Accuracy</th>
+                        <th>Precision</th>
+                        <th>F1 Score</th>
+                        <th>Training Samples</th>
+                        <th>Backbone Trained?</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Zero-Shot</td>
+                        <td><strong>Zero-Shot CLIP</strong></td>
+                        <td class="good-cell">0.8959</td>
+                        <td class="good-cell">0.898</td>
+                        <td class="good-cell">0.877</td>
                         <td>0</td>
-                        <td>-</td>
-                        <td>59.08%</td>
+                        <td>No</td>
                     </tr>
                     <tr>
-                        <td>Few-Shot (k=5)</td>
-                        <td>505</td>
-                        <td>30</td>
-                        <td>82.85%</td>
+                        <td><strong>5-Shot (Linear Probe)</strong></td>
+                        <td class="bad-cell">0.8763</td>
+                        <td class="bad-cell">0.882</td>
+                        <td class="bad-cell">0.878</td>
+                        <td>50</td>
+                        <td>No (linear head only)</td>
                     </tr>
-                    <tr style="background-color: #e6f1ff; font-weight: bold;">
-                        <td>Full Training</td>
-                        <td>67,988</td>
-                        <td>20</td>
-                        <td>91.02%</td>
+                    <tr style="background: #f2faf5;">
+                        <td><strong>10-Shot (Linear Probe)</strong></td>
+                        <td class="best-cell">0.9416</td>
+                        <td class="best-cell">0.942</td>
+                        <td class="best-cell">0.941</td>
+                        <td>100</td>
+                        <td>No (linear head only)</td>
                     </tr>
                 </tbody>
             </table>
-        </section>
+        </div>
+        <p style="font-size:12px; font-family: var(--mono); color: var(--text-muted); margin-top:8px;">Table 5.1 — Best values highlighted in green.</p>
 
-        <section class="card">
-            <h2>Training Configuration</h2>
-            <ul>
-                <li><strong>Optimizer:</strong> Adam</li>
-                <li><strong>Learning Rate:</strong> 1e-3</li>
-                <li><strong>Weight Decay:</strong> 1e-4 (L2 Regularization)</li>
-                <li><strong>Batch Size:</strong> 256 for full train / 32 for few-shot</li>
+        <div class="callout callout-warn">
+            <div class="callout-title">Interesting Finding: 5-Shot Underperforms Zero-Shot</div>
+            <p style="margin:0; color: #2e2c28;">Notably, the 5-shot linear probe (<strong>87.6%</strong>) scores <em>lower</em> than zero-shot (<strong>89.6%</strong>). With only 5 examples per class, the probe does not yet have sufficient signal to adapt the decision boundary better than CLIP's pretrained similarity. This "few-shot valley" is a known phenomenon — a few-shot linear probe requires enough examples to outweigh the prior embedded in CLIP's text-image alignment. At 10 shots, the probe surpasses zero-shot by a clear margin (+4.6%).</p>
+        </div>
+    </section>
+
+    <!-- ───── SECTION 6: CONFUSION MATRICES ───── -->
+    <section class="card">
+        <div class="section-label">Section 6</div>
+        <h2>Error Analysis — Confusion Matrices</h2>
+
+        <p>Confusion matrices reveal which categories are most commonly confused. Since all three methods share the same 10-class label space, we can directly compare error patterns across paradigms.</p>
+
+        <div class="fig-wrap">
+            <img src="assets/confusion_matrices.png" alt="HAM10000 Image Samples" class="colab-img" style="max-width: 100%;">
+            <p class="fig-caption">Figure 6.1 — Confusion matrices for Zero-Shot (acc=0.896), 5-Shot Probe (acc=0.876), and 10-Shot Probe (acc=0.942).</p>
+        </div>
+
+        <h3>Key Error Patterns</h3>
+        <ul>
+            <li><strong>hot_dog</strong> is the most challenging class across all methods — it is frequently confused with <code>hamburger</code>, <code>steak</code>, and <code>french_fries</code>. This reflects genuine visual ambiguity between processed meat presentations.</li>
+            <li><strong>pho</strong> occasionally confuses the model with other noodle or soup dishes, but zero-shot handles it well thanks to the distinctive textual concept.</li>
+            <li>The <strong>10-shot probe</strong> shows the cleanest diagonal, with notably fewer off-diagonal errors for <code>hot_dog</code> and <code>hamburger</code> compared to both other methods.</li>
+            <li>The <strong>5-shot probe</strong> shows more scattered off-diagonal errors, consistent with its lower overall accuracy.</li>
+        </ul>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Error Analysis Insight</div>
+            <p style="margin:0; color: #2e2c28;">Zero-shot CLIP benefits from <em>semantic discrimination</em> — the text embedding for "hot dog" vs. "hamburger" is inherently distinct, guiding the classifier even when visual features overlap. The linear probe must learn this distinction from very few examples, which explains its higher hot_dog confusion at 5 shots.</p>
+        </div>
+    </section>
+
+    <!-- ───── SECTION 7: CALIBRATION ───── -->
+    <section class="card">
+        <div class="section-label">Section 7</div>
+        <h2>Confidence Calibration Analysis</h2>
+
+        <p>Calibration measures whether a model's predicted confidence scores are trustworthy — i.e., when it says "90% confident", is it right ~90% of the time? This is critical in real-world deployments where confidence thresholds gate downstream decisions.</p>
+
+        <h3>7.1 Expected Calibration Error (ECE)</h3>
+        <div class="fig-wrap">
+            <img src="assets/calibration_ece_bar.png" alt="HAM10000 Image Samples" class="colab-img" style="max-width: 100%;">
+            <p class="fig-caption">Figure 7.1 — Expected Calibration Error by method. Lower is better.</p>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card best">
+                <div class="metric-label">Zero-Shot ECE</div>
+                <div class="metric-value">0.028</div>
+                <div class="metric-sub">Excellent calibration</div>
+            </div>
+            <div class="metric-card mid">
+                <div class="metric-label">5-Shot ECE</div>
+                <div class="metric-value">0.701</div>
+                <div class="metric-sub">Severely overconfident</div>
+            </div>
+            <div class="metric-card mid">
+                <div class="metric-label">10-Shot ECE</div>
+                <div class="metric-value">0.662</div>
+                <div class="metric-sub">Severely overconfident</div>
+            </div>
+        </div>
+
+        <h3>7.2 Reliability Diagrams</h3>
+        <div class="fig-wrap">
+            <img src="assets/reliability_diagrams.png" alt="HAM10000 Image Samples" class="colab-img" style="max-width: 100%;">
+            <p class="fig-caption">Figure 7.2 — Reliability diagrams. Bars show empirical accuracy per confidence bin; the black line traces mean confidence. The red dashed line represents perfect calibration.</p>
+        </div>
+
+        <div class="callout callout-warn">
+            <div class="callout-title">Critical Calibration Finding</div>
+            <p style="margin:0 0 10px 0; color: #2e2c28;"><strong>Zero-shot CLIP is exceptionally well-calibrated</strong> (ECE = 0.028). The reliability diagram shows the confidence line tracking nearly perfectly along the diagonal — meaning its softmax probabilities genuinely reflect predictive uncertainty. This is a known property of CLIP's cosine similarity scores when used without temperature rescaling.</p>
+            <p style="margin:0; color: #2e2c28;"><strong>Linear probe models are severely overconfident</strong> (ECE ≈ 0.66–0.70). Because the linear head is trained with cross-entropy on a tiny support set (50–100 samples), it collapses logit distributions towards very high confidence at relatively low actual accuracy bands. Calibration techniques like temperature scaling or Platt scaling would be essential before deploying these models in production.</p>
+        </div>
+
+        <h3>7.3 Practical Implications</h3>
+        <p>The calibration gap between zero-shot and few-shot methods reveals a subtle trade-off:</p>
+        <ul>
+            <li>Zero-shot CLIP is simultaneously the second-most accurate <em>and</em> the best-calibrated method — making it a strong baseline for uncertainty-aware applications.</li>
+            <li>The 10-shot probe achieves the highest raw accuracy but its confidence scores cannot be taken at face value without post-hoc calibration.</li>
+            <li>In safety-critical applications (food allergen detection, dietary apps), calibrated uncertainty is as important as accuracy — favouring zero-shot or calibrated few-shot approaches.</li>
+        </ul>
+    </section>
+
+    <!-- ───── SECTION 8: CONCLUSIONS ───── -->
+    <section class="card">
+        <div class="section-label">Section 8</div>
+        <h2>Conclusions &amp; Takeaways</h2>
+
+        <h3>8.1 Performance Summary</h3>
+        <p>CLIP ViT-B/16 demonstrates strong food classification capability across all tested paradigms:</p>
+        <ul>
+            <li><strong>Zero-shot (89.6%)</strong> — An impressive baseline with no task-specific training, enabled by CLIP's rich vision-language pretraining.</li>
+            <li><strong>5-shot probe (87.6%)</strong> — Slightly underperforms zero-shot, illustrating that a very small support set is insufficient to overcome CLIP's strong prior at this shot count.</li>
+            <li><strong>10-shot probe (94.2%)</strong> — The best performing method overall, gaining +4.6pp over zero-shot with just 100 total training samples.</li>
+        </ul>
+
+        <h3>8.2 Key Insights</h3>
+        <div class="callout callout-success">
+            <div class="callout-title">Main Takeaways</div>
+            <ul style="margin: 0 0 0 16px; color: #2e2c28; line-height: 1.8;">
+                <li><strong>CLIP's zero-shot is a strong baseline</strong> for food classification — its semantic understanding of food concepts from pretraining generalises directly.</li>
+                <li><strong>The "few-shot valley"</strong>: at very low shot counts (k=5), a linear probe may not improve over zero-shot. More examples are needed to overcome CLIP's implicit prior.</li>
+                <li><strong>Calibration diverges from accuracy:</strong> the best-accuracy model (10-shot) has the worst calibration. Confidence scores from the linear probe require post-hoc correction.</li>
+                <li><strong>Multimodal fusion helps:</strong> combining image and text embeddings (recipe title) adds marginal but consistent gains over image-only classification.</li>
             </ul>
-        </section>
-    </div>
+        </div>
 
-    <footer style="text-align: center; padding: 20px; color: #777;">
-        © 2026 Nguyễn Hoàng Dung - 2252109 - HCMUT
-    </footer>
+        <h3>8.3 Future Directions</h3>
+        <ul>
+            <li>Experiment with <strong>prompt ensembling</strong> (averaging multiple prompt templates per class) to further improve zero-shot performance.</li>
+            <li>Apply <strong>temperature scaling</strong> to calibrate linear probe confidence scores before deployment.</li>
+            <li>Explore <strong>higher shot counts</strong> (k = 20, 50) to map the full few-shot learning curve.</li>
+            <li>Compare against a fully fine-tuned CLIP or a ViT trained from scratch to quantify the data efficiency advantage.</li>
+        </ul>
+    </section>
+
+</div>
+
+<footer>
+    &copy; 2026 — CLIP Food Classification Report · Deep Learning Assignment · HCMUT
+</footer>
+
 </body>
 </html>
