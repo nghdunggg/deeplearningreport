@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CLIP Food Classification | DL Assignment</title>
     <link rel="stylesheet" href="style.css">
+    <title>Multimodal Classification | Food-101</title>
+    <script type="module" src="https://gradio.s3-appcenter.hf.space/gradio.js"></script>
 </head>
 <body>
 
@@ -323,9 +325,29 @@
                 <li><strong>Multimodal fusion helps:</strong> combining image and text embeddings (recipe title) adds marginal but consistent gains over image-only classification.</li>
             </ul>
         </div>
-    </section>
+      </section>
 
-</div>
+        <section class="card">
+            <h2>Interactive Application Demo</h2>
+            <p>Test the multimodal food classification model directly below. Upload an image and provide a text description to evaluate the prediction power of different modes.</p>
+            
+            <div style="border: 2px dashed var(--accent-teal); border-radius: 8px; margin-top: 15px; background-color: var(--white); overflow: hidden; padding: 5px;">
+                
+                <iframe
+                    src="https://nghdunggg-dla1-multimodal-demo.hf.space"
+                    frameborder="0"
+                    width="100%"
+                    height="850"
+                    style="border: none; border-radius: 4px;"
+                    allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr; wake-lock; xr-spatial-tracking"
+                ></iframe>
+                
+            </div>
+            <p style="text-align: center; font-size: 0.9em; color: #777; margin-top: 10px;">
+                <em>Note: If the demo shows a "500 Server Error", it means the Hugging Face server is currently asleep. <a href="https://huggingface.co/spaces/nghdunggg/DLA1_Multimodal_Demo" target="_blank" style="color: var(--accent-teal);">Click here</a> to wake it up!</em>
+            </p>
+        </section>
+    </div>
 
 <footer>
     &copy; 2026 — CLIP Food Classification Report · Deep Learning Assignment · HCMUT
